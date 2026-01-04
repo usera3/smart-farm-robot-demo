@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test 1: Basic Scene and Cart Movement</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+        #container { width: 100vw; height: 100vh; }
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 300px;
+            transition: transform 0.3s ease-in-out;
+        }
+        #controls.collapsed {
+            transform: translateX(calc(-100% - 40px));
+        }
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .test-info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .test-info strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .status-item {
+            margin: 5px 0;
+        }
+        .status-item span {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        /* 手动控制面板 */
+        #manualControl {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease-in-out;
+        }
+        #manualControl.collapsed {
+            transform: translateX(calc(100% + 40px));
+        }
+        
+        .control-section {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .control-section h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        
+        .slider-group {
+            margin: 10px 0;
+        }
+        
+        .slider-group label {
+            display: block;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .slider-group input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .slider-value {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        /* 单步控制按钮组 */
+        .step-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            justify-content: center;
+        }
+        .step-btn {
+            flex: 1;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .step-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+        .step-btn:active {
+            transform: translateY(0);
+        }
+        .step-btn.large {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .step-btn.small {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .position-display {
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            line-height: 1.6;
+            border-left: 4px solid #667eea;
+        }
+        
+        .position-display strong {
+            color: #667eea;
+        }
+        
+        .record-item {
+            background: #e7f3ff;
+            padding: 8px;
+            border-radius: 6px;
+            margin: 5px 0;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .record-item:hover {
+            background: #d0e7ff;
+            transform: translateX(5px);
+        }
+        
+        .btn-small {
+            width: 48%;
+            display: inline-block;
+            padding: 8px;
+            margin: 2px 1%;
+            font-size: 14px;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        /* 收纳按钮 */
+        .toggle-btn {
+            position: fixed;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            border: none;
+            padding: 15px 10px;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            width: auto;
+            min-width: 45px;
+            font-weight: bold;
+        }
+        .toggle-btn:hover {
+            background: rgba(118, 75, 162, 0.95);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+        }
+        #toggleLeft {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            border-radius: 0 8px 8px 0;
+        }
+        #toggleRight {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            border-radius: 8px 0 0 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <!-- 收纳按钮 -->
+    <button id="toggleLeft" class="toggle-btn" onclick="toggleLeftPanel()" title="Collapse/Expand Left Panel">◀</button>
+    <button id="toggleRight" class="toggle-btn" onclick="toggleRightPanel()" title="Collapse/Expand Right Panel">▶</button>
+    
+    <div id="controls">
+        <h2>🤖 Farm Robot Arm Demo System</h2>
+        
+        <div class="test-info">
+            <strong>Demo Content:</strong>
+            Four-axis robotic arm cart with automatic weeding and seeding
+            <br><br>
+            <strong>Workflow:</strong>
+            Visit 16 grids sequentially → Remove weeds → Plant seeds → Return to start
+        </div>
+        
+        <button class="btn-primary" onclick="startTest()">▶️ Start Test</button>
+        <button class="btn-secondary" onclick="stopTest()">⏹️ Stop</button>
+        <button class="btn-secondary" onclick="resetTest()">🔄 Reset</button>
+        <button class="btn-secondary" onclick="toggleManualControl()">🎮 Manual Control</button>
+        
+        <div class="status">
+            <div class="status-item">
+                Status: <span id="status">Ready</span>
+            </div>
+            <div class="status-item">
+                Current Position: <span id="position">(-1.50, -1.50)</span>
+            </div>
+            <div class="status-item">
+                Progress: <span id="waypoint">0/16</span>
+            </div>
+            <div class="status-item">
+                Current Task: <span id="currentCell">Ready</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Manual Control Panel -->
+    <div id="manualControl" style="display: none;">
+        <h2>🎮 Manual Debug Console</h2>
+        
+        <!-- Cart Position Control -->
+        <div class="control-section">
+            <h3>🚗 Cart Position</h3>
+            <div class="slider-group">
+                <label>X-axis: <span class="slider-value" id="cartXValue">0.00</span></label>
+                <input type="range" id="cartX" min="-1.5" max="1.5" step="0.01" value="0" oninput="updateCartPosition()">
+                <div class="step-controls">
+                    <button class="step-btn large" onclick="stepCartX(-0.1)">--</button>
+                    <button class="step-btn small" onclick="stepCartX(-0.01)">-</button>
+                    <button class="step-btn small" onclick="stepCartX(0.01)">+</button>
+                    <button class="step-btn large" onclick="stepCartX(0.1)">++</button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Z-axis: <span class="slider-value" id="cartZValue">0.00</span></label>
+                <input type="range" id="cartZ" min="-1.5" max="1.5" step="0.01" value="0" oninput="updateCartPosition()">
+                <div class="step-controls">
+                    <button class="step-btn large" onclick="stepCartZ(-0.1)">--</button>
+                    <button class="step-btn small" onclick="stepCartZ(-0.01)">-</button>
+                    <button class="step-btn small" onclick="stepCartZ(0.01)">+</button>
+                    <button class="step-btn large" onclick="stepCartZ(0.1)">++</button>
+                </div>
+            </div>
+            <button class="btn-small btn-info" onclick="moveToGrass()">📍 Move to Grass</button>
+            <button class="btn-small btn-secondary" onclick="moveToOrigin()">🏠 Return to Origin</button>
+        </div>
+        
+        <!-- Robotic Arm Joint Control -->
+        <div class="control-section">
+            <h3>🦾 Robotic Arm Joint Angles</h3>
+            <div class="slider-group">
+                <label>Shoulder Joint: <span class="slider-value" id="shoulderValue">0°</span></label>
+                <input type="range" id="shoulder" min="-180" max="180" step="1" value="0" oninput="updateArmAngles()">
+                <div class="step-controls">
+                    <button class="step-btn large" onclick="stepShoulder(-10)">--</button>
+                    <button class="step-btn small" onclick="stepShoulder(-1)">-</button>
+                    <button class="step-btn small" onclick="stepShoulder(1)">+</button>
+                    <button class="step-btn large" onclick="stepShoulder(10)">++</button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Elbow Joint: <span class="slider-value" id="elbowValue">0°</span></label>
+                <input type="range" id="elbow" min="-180" max="180" step="1" value="0" oninput="updateArmAngles()">
+                <div class="step-controls">
+                    <button class="step-btn large" onclick="stepElbow(-10)">--</button>
+                    <button class="step-btn small" onclick="stepElbow(-1)">-</button>
+                    <button class="step-btn small" onclick="stepElbow(1)">+</button>
+                    <button class="step-btn large" onclick="stepElbow(10)">++</button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Wrist Joint: <span class="slider-value" id="wristValue">0°</span></label>
+                <input type="range" id="wrist" min="-180" max="180" step="1" value="0" oninput="updateArmAngles()">
+                <div class="step-controls">
+                    <button class="step-btn large" onclick="stepWrist(-10)">--</button>
+                    <button class="step-btn small" onclick="stepWrist(-1)">-</button>
+                    <button class="step-btn small" onclick="stepWrist(1)">+</button>
+                    <button class="step-btn large" onclick="stepWrist(10)">++</button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Gripper: <span class="slider-value" id="gripperValue">Closed</span></label>
+                <input type="range" id="gripper" min="0" max="1" step="1" value="0" oninput="updateGripper()">
+                <div class="step-controls">
+                    <button class="step-btn" onclick="toggleGripper()">Open/Close</button>
+                </div>
+            </div>
+            <button class="btn-small btn-secondary" onclick="resetArm()">↩️ Reset Pose</button>
+            <button class="btn-small btn-info" onclick="autoAlignGrass()">🎯 Auto Align to Grass</button>
+        </div>
+        
+        <!-- Position Information Display -->
+        <div class="control-section">
+            <h3>📍 Real-time Position Information</h3>
+            <div class="position-display" id="positionInfo">
+                <strong>Gripper End:</strong> (0.00, 0.00, 0.00)<br>
+                <strong>Target Grass:</strong> Not Selected<br>
+                <strong>Distance:</strong> -
+            </div>
+            <button class="btn-small btn-info" onclick="selectTargetGrass()">🌱 Select Target Grass</button>
+            <button class="btn-small btn-secondary" onclick="updatePositionInfo()">🔄 Refresh Position</button>
+        </div>
+        
+        <!-- Status Records -->
+        <div class="control-section">
+            <h3>💾 Status Records</h3>
+            <button class="btn-success" style="width: 100%;" onclick="recordCurrentState()">📸 Record Current State</button>
+            <button class="btn-warning" style="width: 100%; margin-top: 5px;" onclick="exportRecords()">📤 Export All Records</button>
+            <button class="btn-secondary" style="width: 100%; margin-top: 5px;" onclick="clearRecords()">🗑️ Clear Records</button>
+            <div id="recordsList" style="margin-top: 10px; max-height: 200px; overflow-y: auto;">
+                <!-- Records list will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        let scene, camera, renderer, controls;
+        let cart, farm;
+        let testRunning = false;
+        let currentWaypoint = 0;
+        let waypoints = [];
+        let grassArray = [];  // 存储所有草的引用 [row][col]
+        let seeds = [];       // 存储所有种子
+        
+        // 手动控制相关变量
+        let manualMode = false;
+        let stateRecords = [];  // 状态记录数组
+        let targetGrass = null;  // 当前选中的目标草
+        let targetGrassIndex = 0; // 当前选中草的索引 (0-15)
+        
+        // 初始化场景
+        function init() {
+            // 场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
+            
+            // 相机
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(3, 3, 3);
+            camera.lookAt(0, 0, 0);
+            
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // 控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // 光照
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.left = -5;
+            dirLight.shadow.camera.right = 5;
+            dirLight.shadow.camera.top = 5;
+            dirLight.shadow.camera.bottom = -5;
+            scene.add(dirLight);
+            
+            // 地面
+            const groundGeometry = new THREE.PlaneGeometry(10, 10);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x90EE90,
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // 创建农田
+            createFarm();
+            
+            // 创建小车
+            createCart();
+            
+            // 窗口调整
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // 加载测试路径
+            loadTestPath();
+            
+            // 开始动画
+            animate();
+            
+            console.log('✅ 场景初始化完成');
+            console.log('📍 小车初始位置:', cart.position);
+        }
+        
+        // 创建一株草
+        function createGrass() {
+            const grassGroup = new THREE.Group();
+            
+            // 草的材质 - 绿色
+            const grassMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x228B22,
+                roughness: 0.8
+            });
+            
+            // 草茎（细圆柱）
+            const stemGeometry = new THREE.CylinderGeometry(0.005, 0.008, 0.08, 8);
+            const stem = new THREE.Mesh(stemGeometry, grassMaterial);
+            stem.position.y = 0.04;
+            grassGroup.add(stem);
+            
+            // 草叶（多个细长的椭圆）
+            const leafMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x32CD32,
+                roughness: 0.7,
+                side: THREE.DoubleSide
+            });
+            
+            // 创建5-7片草叶
+            const leafCount = 5 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < leafCount; i++) {
+                const angle = (Math.PI * 2 * i) / leafCount;
+                const bendAngle = 0.3 + Math.random() * 0.4; // 随机弯曲角度
+                
+                const leafGeometry = new THREE.PlaneGeometry(0.015, 0.06);
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                
+                // 定位草叶
+                leaf.position.y = 0.05;
+                leaf.position.x = Math.cos(angle) * 0.01;
+                leaf.position.z = Math.sin(angle) * 0.01;
+                
+                // 旋转草叶
+                leaf.rotation.y = angle;
+                leaf.rotation.x = -bendAngle;
+                
+                grassGroup.add(leaf);
+            }
+            
+            // 草顶部的小簇（让草更茂密）
+            const topTuftGeometry = new THREE.SphereGeometry(0.015, 6, 6);
+            const topTuft = new THREE.Mesh(topTuftGeometry, grassMaterial);
+            topTuft.position.y = 0.08;
+            topTuft.scale.set(1, 1.5, 1);
+            grassGroup.add(topTuft);
+            
+            // 随机轻微旋转，让每株草都略有不同
+            grassGroup.rotation.y = Math.random() * Math.PI * 2;
+            
+            // 投射阴影
+            grassGroup.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                }
+            });
+            
+            return grassGroup;
+        }
+        
+        // 创建农田
+        function createFarm() {
+            farm = new THREE.Group();
+            const cellSize = 0.5;
+            const gridSize = 4;
+            const offsetX = -0.75;
+            const offsetZ = -0.75;
+            
+            // 初始化草数组
+            grassArray = [];
+            for (let i = 0; i < gridSize; i++) {
+                grassArray[i] = [];
+            }
+            
+            // 创建4x4格子，每个格子有不同的颜色以便区分
+            const colors = [0xD2691E, 0xCD853F]; // 两种土壤颜色交替
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const cellGeometry = new THREE.BoxGeometry(cellSize - 0.02, 0.01, cellSize - 0.02);
+                    const colorIndex = (row + col) % 2;
+                    const cellMaterial = new THREE.MeshStandardMaterial({ 
+                        color: colors[colorIndex],
+                        roughness: 0.9
+                    });
+                    const cell = new THREE.Mesh(cellGeometry, cellMaterial);
+                    cell.position.set(
+                        offsetX + col * cellSize + cellSize / 2,
+                        0.005,
+                        offsetZ + row * cellSize + cellSize / 2
+                    );
+                    cell.receiveShadow = true;
+                    farm.add(cell);
+                    
+                    // 添加格子编号标签（调试用）
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const context = canvas.getContext('2d');
+                    context.fillStyle = 'white';
+                    context.font = '32px Arial';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(`${row},${col}`, 32, 32);
+                    
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const labelGeometry = new THREE.PlaneGeometry(0.15, 0.15);
+                    const labelMaterial = new THREE.MeshBasicMaterial({ 
+                        map: texture, 
+                        transparent: true 
+                    });
+                    const label = new THREE.Mesh(labelGeometry, labelMaterial);
+                    label.rotation.x = -Math.PI / 2;
+                    label.position.set(
+                        offsetX + col * cellSize + cellSize / 2,
+                        0.02,
+                        offsetZ + row * cellSize + cellSize / 2
+                    );
+                    farm.add(label);
+                    
+                    // 在每个格子中心添加一株草
+                    const grass = createGrass();
+                    grass.position.set(
+                        offsetX + col * cellSize + cellSize / 2,
+                        0.01,
+                        offsetZ + row * cellSize + cellSize / 2
+                    );
+                    grass.userData = { row, col, isPulled: false };  // 保存位置信息
+                    farm.add(grass);
+                    grassArray[row][col] = grass;  // 保存引用
+                }
+            }
+            
+            // 农田外边框
+            const borderThickness = 0.05;
+            const borderHeight = 0.05;
+            const borderMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+            
+            // 四条边框
+            const borders = [
+                // 上边框
+                { w: gridSize * cellSize + borderThickness * 2, h: borderHeight, d: borderThickness,
+                  x: offsetX + gridSize * cellSize / 2, z: offsetZ - borderThickness / 2 },
+                // 下边框
+                { w: gridSize * cellSize + borderThickness * 2, h: borderHeight, d: borderThickness,
+                  x: offsetX + gridSize * cellSize / 2, z: offsetZ + gridSize * cellSize + borderThickness / 2 },
+                // 左边框
+                { w: borderThickness, h: borderHeight, d: gridSize * cellSize,
+                  x: offsetX - borderThickness / 2, z: offsetZ + gridSize * cellSize / 2 },
+                // 右边框
+                { w: borderThickness, h: borderHeight, d: gridSize * cellSize,
+                  x: offsetX + gridSize * cellSize + borderThickness / 2, z: offsetZ + gridSize * cellSize / 2 }
+            ];
+            
+            borders.forEach(b => {
+                const geometry = new THREE.BoxGeometry(b.w, b.h, b.d);
+                const border = new THREE.Mesh(geometry, borderMaterial);
+                border.position.set(b.x, borderHeight / 2, b.z);
+                border.castShadow = true;
+                farm.add(border);
+            });
+            
+            scene.add(farm);
+            console.log('✅ 农田创建完成: 4x4 = 16个格子，每个格子都有一株草');
+        }
+        
+        // 创建四轴机械臂（重建版 - 专业工业风格）
+        function createRobotArm() {
+            const armGroup = new THREE.Group();
+            
+            // 机械臂配置（与后端保持一致）
+            const L1 = 0.10;  // 底座高度
+            const L2 = 0.30;  // 大臂长度
+            const L3 = 0.25;  // 小臂长度
+            const L4 = 0.15;  // 末端执行器长度
+            
+            // 重建材质 - 统一工业风格
+            const mainBodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x34495E,  // 深灰色主体
+                metalness: 0.9,
+                roughness: 0.2
+            });
+            const jointMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xE67E22,  // 橙色关节
+                metalness: 0.85,
+                roughness: 0.25
+            });
+            const accentMaterial = new THREE.MeshStandardMaterial({
+                color: 0xECF0F1,  // 浅灰色装饰
+                metalness: 0.95,
+                roughness: 0.1
+            });
+            
+            // === 1. 底座 ===
+            const baseJoint = new THREE.Group();
+            
+            // 底座 - 三段式设计
+            const baseLower = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.05, 0.055, L1 * 0.4, 24),
+                mainBodyMaterial
+            );
+            baseLower.position.y = L1 * 0.2;
+            baseLower.castShadow = true;
+            baseJoint.add(baseLower);
+            
+            const baseMid = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.048, 0.048, L1 * 0.3, 24),
+                accentMaterial
+            );
+            baseMid.position.y = L1 * 0.55;
+            baseMid.castShadow = true;
+            baseJoint.add(baseMid);
+            
+            const baseUpper = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.045, 0.048, L1 * 0.3, 24),
+                mainBodyMaterial
+            );
+            baseUpper.position.y = L1 * 0.85;
+            baseUpper.castShadow = true;
+            baseJoint.add(baseUpper);
+            
+            // === 2. 肩关节 ===
+            const shoulderJoint = new THREE.Group();
+            shoulderJoint.position.y = L1;
+            
+            // 关节壳体 - 包裹设计
+            const shoulderHousing = new THREE.Mesh(
+                new THREE.BoxGeometry(0.08, 0.06, 0.06),
+                mainBodyMaterial
+            );
+            shoulderHousing.castShadow = true;
+            shoulderJoint.add(shoulderHousing);
+            
+            // 旋转轴突出部分
+            const shoulderAxis = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.015, 0.015, 0.08, 16),
+                accentMaterial
+            );
+            shoulderAxis.rotation.x = Math.PI / 2;
+            shoulderAxis.castShadow = true;
+            shoulderJoint.add(shoulderAxis);
+            
+            // === 3. 大臂 ===
+            const link2Group = new THREE.Group();
+            
+            // 大臂 - 完整圆柱体，一体化
+            const link2Main = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.025, 0.025, L2, 24),
+                mainBodyMaterial
+            );
+            link2Main.rotation.z = Math.PI / 2;
+            link2Main.position.x = L2 / 2;
+            link2Main.castShadow = true;
+            link2Group.add(link2Main);
+            
+            // 大臂装饰环
+            for (let i = 0; i < 3; i++) {
+                const ring = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.027, 0.027, 0.01, 24),
+                    accentMaterial
+                );
+                ring.rotation.z = Math.PI / 2;
+                ring.position.x = L2 * (0.2 + i * 0.3);
+                ring.castShadow = true;
+                link2Group.add(ring);
+            }
+            
+            shoulderJoint.add(link2Group);
+            
+            // === 4. 肘关节 ===
+            const elbowJoint = new THREE.Group();
+            elbowJoint.position.x = L2;
+            
+            // 肘关节壳体 - 方形设计
+            const elbowHousing = new THREE.Mesh(
+                new THREE.BoxGeometry(0.06, 0.05, 0.05),
+                mainBodyMaterial
+            );
+            elbowHousing.castShadow = true;
+            elbowJoint.add(elbowHousing);
+            
+            // 肘关节橙色装饰
+            const elbowAccent = new THREE.Mesh(
+                new THREE.BoxGeometry(0.062, 0.02, 0.052),
+                jointMaterial
+            );
+            elbowAccent.castShadow = true;
+            elbowJoint.add(elbowAccent);
+            
+            // === 5. 小臂 ===
+            const link3Group = new THREE.Group();
+            
+            // 小臂 - 完整圆柱体
+            const link3Main = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.020, 0.020, L3, 24),
+                mainBodyMaterial
+            );
+            link3Main.rotation.z = Math.PI / 2;
+            link3Main.position.x = L3 / 2;
+            link3Main.castShadow = true;
+            link3Group.add(link3Main);
+            
+            // 小臂装饰环
+            for (let i = 0; i < 2; i++) {
+                const ring = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.022, 0.022, 0.008, 24),
+                    accentMaterial
+                );
+                ring.rotation.z = Math.PI / 2;
+                ring.position.x = L3 * (0.25 + i * 0.5);
+                ring.castShadow = true;
+                link3Group.add(ring);
+            }
+            
+            elbowJoint.add(link3Group);
+            
+            // === 6. 腕关节 ===
+            const wristJoint = new THREE.Group();
+            wristJoint.position.x = L3;
+            
+            // 腕关节壳体 - 小型方盒
+            const wristHousing = new THREE.Mesh(
+                new THREE.BoxGeometry(0.045, 0.04, 0.04),
+                mainBodyMaterial
+            );
+            wristHousing.castShadow = true;
+            wristJoint.add(wristHousing);
+            
+            // 腕关节橙色装饰
+            const wristAccent = new THREE.Mesh(
+                new THREE.BoxGeometry(0.047, 0.015, 0.042),
+                jointMaterial
+            );
+            wristAccent.castShadow = true;
+            wristJoint.add(wristAccent);
+            
+            // 腕部延伸臂 - 连接到抓手
+            const wristExtension = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.018, 0.018, L4, 24),
+                mainBodyMaterial
+            );
+            wristExtension.rotation.z = Math.PI / 2;
+            wristExtension.position.x = L4 / 2;
+            wristExtension.castShadow = true;
+            wristJoint.add(wristExtension);
+            
+            // 7. 末端执行器（抓手）
+            const gripperGroup = createGripper();
+            gripperGroup.position.x = L4;
+            wristJoint.add(gripperGroup);
+            
+            // 组装机械臂
+            elbowJoint.add(wristJoint);
+            shoulderJoint.add(elbowJoint);
+            baseJoint.add(shoulderJoint);
+            armGroup.add(baseJoint);
+            
+            // 保存关节引用以便后续控制
+            armGroup.baseJoint = baseJoint;
+            armGroup.shoulderJoint = shoulderJoint;
+            armGroup.elbowJoint = elbowJoint;
+            armGroup.wristJoint = wristJoint;
+            armGroup.gripperGroup = gripperGroup;
+            
+            // 设置初始姿态（垂直向上）
+            shoulderJoint.rotation.z = 0;
+            elbowJoint.rotation.z = 0;
+            wristJoint.rotation.z = 0;
+            
+            console.log('✅ 四轴机械臂创建完成');
+            return armGroup;
+        }
+        
+        // 创建抓手（重建版 - 简洁工业设计）
+        function createGripper() {
+            const gripperGroup = new THREE.Group();
+            
+            const mainBodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x34495E,
+                metalness: 0.9,
+                roughness: 0.2
+            });
+            
+            const accentMaterial = new THREE.MeshStandardMaterial({
+                color: 0xECF0F1,
+                metalness: 0.95,
+                roughness: 0.1
+            });
+            
+            // 抓手基座
+            const gripperBase = new THREE.Mesh(
+                new THREE.BoxGeometry(0.04, 0.03, 0.04),
+                mainBodyMaterial
+            );
+            gripperBase.castShadow = true;
+            gripperGroup.add(gripperBase);
+            
+            // LED状态指示灯
+            const led = new THREE.Mesh(
+                new THREE.SphereGeometry(0.004, 12, 12),
+                new THREE.MeshStandardMaterial({
+                    color: 0x00FF00,
+                    emissive: 0x00FF00,
+                    emissiveIntensity: 1.0
+                })
+            );
+            led.position.set(0, 0, 0.021);
+            gripperGroup.add(led);
+            gripperGroup.led = led;
+            
+            // 左手指
+            const leftFinger = new THREE.Mesh(
+                new THREE.BoxGeometry(0.01, 0.05, 0.02),
+                accentMaterial
+            );
+            leftFinger.position.set(0, -0.04, 0.01);
+            leftFinger.castShadow = true;
+            gripperGroup.add(leftFinger);
+            
+            // 右手指
+            const rightFinger = new THREE.Mesh(
+                new THREE.BoxGeometry(0.01, 0.05, 0.02),
+                accentMaterial
+            );
+            rightFinger.position.set(0, -0.04, -0.01);
+            rightFinger.castShadow = true;
+            gripperGroup.add(rightFinger);
+            
+            // 抓手末端标记点（调试用 - 显示抓取点）
+            const tipMarker = new THREE.Mesh(
+                new THREE.SphereGeometry(0.008, 8, 8),
+                new THREE.MeshStandardMaterial({
+                    color: 0xFF0000,
+                    emissive: 0xFF0000,
+                    emissiveIntensity: 0.5,
+                    transparent: true,
+                    opacity: 0.6
+                })
+            );
+            tipMarker.position.set(0, -0.065, 0); // 手指末端位置
+            gripperGroup.add(tipMarker);
+            gripperGroup.tipMarker = tipMarker;
+            
+            // 保存手指引用
+            gripperGroup.leftFinger = leftFinger;
+            gripperGroup.rightFinger = rightFinger;
+            gripperGroup.isOpen = false;
+            
+            return gripperGroup;
+        }
+        
+        // 创建小车
+        function createCart() {
+            cart = new THREE.Group();
+            
+            // 车身
+            const bodyGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.25);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4169E1,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.125;
+            body.castShadow = true;
+            cart.add(body);
+            
+            // 轮子
+            const wheelGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.03, 16);
+            const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            
+            const positions = [
+                [-0.12, 0.05, -0.1],
+                [-0.12, 0.05, 0.1],
+                [0.12, 0.05, -0.1],
+                [0.12, 0.05, 0.1]
+            ];
+            
+            positions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.castShadow = true;
+                cart.add(wheel);
+            });
+            
+            // 添加四轴机械臂到小车上
+            const robotArm = createRobotArm();
+            robotArm.position.set(0, 0.2, 0); // 安装在车身顶部
+            cart.add(robotArm);
+            cart.robotArm = robotArm; // 保存引用以便后续控制
+            
+            // 初始位置
+            cart.position.set(-1.5, 0, -1.5);
+            scene.add(cart);
+            
+            console.log('✅ 小车创建完成（带四轴机械臂）');
+        }
+        
+        // 加载测试路径
+        async function loadTestPath() {
+            try {
+                const response = await fetch('/api/test/cart_positions');
+                const data = await response.json();
+                waypoints = data.positions;
+                document.getElementById('waypoint').textContent = `0/${waypoints.length}`;
+                console.log('✅ 测试路径加载完成:', waypoints.length, '个点');
+                console.log('📋 完整路径列表:');
+                waypoints.forEach((wp, idx) => {
+                    console.log(`  ${idx + 1}. ${wp.label}: (${wp.x.toFixed(2)}, ${wp.y.toFixed(2)})`);
+                });
+            } catch (error) {
+                console.error('❌ 加载路径失败:', error);
+            }
+        }
+        
+        // 开始测试
+        async function startTest() {
+            if (testRunning) return;
+            testRunning = true;
+            currentWaypoint = 0;
+            document.getElementById('status').textContent = '运行中...';
+            
+            console.log('🚀 开始完整演示：移动→拔草→播种');
+            console.log('=' .repeat(60));
+            
+            // 跳过起点，从第一个格子开始
+            for (let i = 1; i <= 16; i++) {
+                if (!testRunning) {
+                    console.log('⏹️ 测试被中断');
+                    break;
+                }
+                
+                const waypoint = waypoints[i];
+                currentWaypoint = i;
+                document.getElementById('waypoint').textContent = `${i}/16`;
+                document.getElementById('currentCell').textContent = waypoint.label;
+                
+                // 从标签中提取行列号
+                const match = waypoint.label.match(/\[(\d+),(\d+)\]/);
+                if (!match) continue;
+                const row = parseInt(match[1]);
+                const col = parseInt(match[2]);
+                
+                console.log(`\n📍 [${i}/16] 格子[${row},${col}]`);
+                console.log(`   1️⃣  移动中...`);
+                
+                // 1. 移动到格子
+                await moveCartTo(waypoint.x, waypoint.y, 1.5);
+                console.log(`   ✅ 已到达`);
+                
+                await sleep(300);
+                
+                // 2. 拔草
+                console.log(`   2️⃣  拔草中...`);
+                await pullGrassAction(row, col);
+                
+                await sleep(300);
+                
+                // 3. 播种
+                console.log(`   3️⃣  播种中...`);
+                await plantSeedAction(row, col);
+                
+                console.log(`   ✅ 格子[${row},${col}]完成！`);
+                await sleep(500);
+            }
+            
+            // 返回起点
+            console.log(`\n🏠 返回起点...`);
+            document.getElementById('currentCell').textContent = '返回起点';
+            await moveCartTo(-1.5, -1.5, 2.0);
+            
+            // 机械臂复位
+            await setArmJoints(0, 0, 0, 1.0);
+            
+            console.log('=' .repeat(60));
+            console.log(`🎉 演示完成！`);
+            console.log(`   ✅ 拔除了 16 株草`);
+            console.log(`   ✅ 种植了 16 粒种子`);
+            console.log('=' .repeat(60));
+            
+            document.getElementById('status').textContent = '演示完成 🎉';
+            testRunning = false;
+        }
+        
+        // 停止测试
+        function stopTest() {
+            testRunning = false;
+            document.getElementById('status').textContent = '已停止';
+            console.log('⏹️ 测试停止');
+        }
+        
+        // 重置测试
+        function resetTest() {
+            stopTest();
+            cart.position.set(-1.5, 0, -1.5);
+            currentWaypoint = 0;
+            document.getElementById('waypoint').textContent = `0/${waypoints.length}`;
+            document.getElementById('position').textContent = '(-1.50, -1.50)';
+            document.getElementById('status').textContent = '就绪';
+            console.log('🔄 测试重置');
+        }
+        
+        // 移动小车到指定位置
+        async function moveCartTo(targetX, targetZ, duration) {
+            const startX = cart.position.x;
+            const startZ = cart.position.z;
+            const startTime = Date.now();
+            const endTime = startTime + duration * 1000;
+            
+            return new Promise((resolve) => {
+                const moveInterval = setInterval(() => {
+                    const now = Date.now();
+                    if (now >= endTime || !testRunning) {
+                        cart.position.x = targetX;
+                        cart.position.z = targetZ;
+                        updatePositionDisplay();
+                        clearInterval(moveInterval);
+                        resolve();
+                        return;
+                    }
+                    
+                    const progress = (now - startTime) / (duration * 1000);
+                    const smoothProgress = smoothStep(progress);
+                    
+                    cart.position.x = startX + (targetX - startX) * smoothProgress;
+                    cart.position.z = startZ + (targetZ - startZ) * smoothProgress;
+                    
+                    updatePositionDisplay();
+                }, 16);
+            });
+        }
+        
+        // 平滑插值函数集
+        function smoothStep(t) {
+            return t * t * (3 - 2 * t);
+        }
+        
+        // 更平滑的缓动函数（ease-in-out cubic）
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        
+        // 弹性缓动（用于抓手）
+        function easeOutElastic(t) {
+            const c4 = (2 * Math.PI) / 3;
+            return t === 0 ? 0 : t === 1 ? 1 :
+                Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+        }
+        
+        // 更新位置显示
+        function updatePositionDisplay() {
+            document.getElementById('position').textContent = 
+                `(${cart.position.x.toFixed(2)}, ${cart.position.z.toFixed(2)})`;
+        }
+        
+        // 睡眠函数
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // ========================================================================
+        // 机械臂控制函数
+        // ========================================================================
+        
+        // 设置机械臂关节角度（优化版 - 使用更好的缓动）
+        function setArmJoints(shoulder, elbow, wrist, duration = 0.5) {
+            const arm = cart.robotArm;
+            if (!arm) return Promise.resolve();
+            
+            const startShoulder = arm.shoulderJoint.rotation.z;
+            const startElbow = arm.elbowJoint.rotation.z;
+            const startWrist = arm.wristJoint.rotation.z;
+            
+            const startTime = Date.now();
+            const endTime = startTime + duration * 1000;
+            
+            return new Promise((resolve) => {
+                const interval = setInterval(() => {
+                    const now = Date.now();
+                    if (now >= endTime) {
+                        arm.shoulderJoint.rotation.z = shoulder;
+                        arm.elbowJoint.rotation.z = elbow;
+                        arm.wristJoint.rotation.z = wrist;
+                        clearInterval(interval);
+                        resolve();
+                        return;
+                    }
+                    
+                    const progress = (now - startTime) / (duration * 1000);
+                    const smooth = easeInOutCubic(progress);  // 使用更平滑的缓动
+                    
+                    arm.shoulderJoint.rotation.z = startShoulder + (shoulder - startShoulder) * smooth;
+                    arm.elbowJoint.rotation.z = startElbow + (elbow - startElbow) * smooth;
+                    arm.wristJoint.rotation.z = startWrist + (wrist - startWrist) * smooth;
+                }, 16);
+            });
+        }
+        
+        // 控制抓手开合（重建版 - 简洁设计）
+        function setGripperOpen(isOpen, duration = 0.3) {
+            const arm = cart.robotArm;
+            if (!arm) return Promise.resolve();
+            
+            const gripper = arm.gripperGroup;
+            const startLeft = gripper.leftFinger.position.z;
+            const startRight = gripper.rightFinger.position.z;
+            const targetLeft = isOpen ? 0.02 : 0.01;
+            const targetRight = isOpen ? -0.02 : -0.01;
+            
+            // 更新LED颜色
+            if (gripper.led) {
+                const ledMat = gripper.led.material;
+                if (isOpen) {
+                    ledMat.color.setHex(0x00FF00);
+                    ledMat.emissive.setHex(0x00FF00);
+                } else {
+                    ledMat.color.setHex(0xFF0000);
+                    ledMat.emissive.setHex(0xFF0000);
+                }
+            }
+            
+            const startTime = Date.now();
+            const endTime = startTime + duration * 1000;
+            
+            return new Promise((resolve) => {
+                const interval = setInterval(() => {
+                    const now = Date.now();
+                    if (now >= endTime) {
+                        gripper.leftFinger.position.z = targetLeft;
+                        gripper.rightFinger.position.z = targetRight;
+                        gripper.isOpen = isOpen;
+                        clearInterval(interval);
+                        resolve();
+                        return;
+                    }
+                    
+                    const progress = (now - startTime) / (duration * 1000);
+                    const smooth = easeInOutCubic(progress);
+                    
+                    gripper.leftFinger.position.z = startLeft + (targetLeft - startLeft) * smooth;
+                    gripper.rightFinger.position.z = startRight + (targetRight - startRight) * smooth;
+                }, 16);
+            });
+        }
+        
+        // ========================================================================
+        // 获取抓手末端的世界坐标
+        // ========================================================================
+        function getGripperTipWorldPosition() {
+            if (!cart || !cart.robotArm || !cart.robotArm.gripperGroup) {
+                return new THREE.Vector3(0, 0, 0);
+            }
+            
+            const tipMarker = cart.robotArm.gripperGroup.tipMarker;
+            if (!tipMarker) {
+                return new THREE.Vector3(0, 0, 0);
+            }
+            
+            const worldPos = new THREE.Vector3();
+            tipMarker.getWorldPosition(worldPos);
+            return worldPos;
+        }
+        
+        // ========================================================================
+        // 逆运动学计算（基于实测数据改进）
+        // ========================================================================
+        
+        // 用户实测的拔草姿态数据（草高度0.01m，距离约0.5-0.7m）
+        const CALIBRATION_DATA = {
+            shoulder: 15 * Math.PI / 180,   // 0.2618 rad
+            elbow: -60 * Math.PI / 180,     // -1.0472 rad
+            wrist: -29 * Math.PI / 180,     // -0.5061 rad
+            referenceDistance: 0.6,         // 假设参考距离
+            referenceHeight: 0.01           // 草顶部高度
+        };
+        
+        // 用户实测的播种姿态数据（最好看的播种姿态）
+        const PLANTING_POSE = {
+            shoulder: 75 * Math.PI / 180,   // 1.3090 rad
+            elbow: -111 * Math.PI / 180,    // -1.9373 rad
+            wrist: 22 * Math.PI / 180       // 0.3840 rad
+        };
+        
+        function calculateArmAngles(targetDist, targetHeight) {
+            // 机械臂参数（与创建时一致）
+            const L1 = 0.10;  // 底座高度
+            const L2 = 0.30;  // 大臂长度
+            const L3 = 0.25;  // 小臂长度
+            const L4 = 0.15;  // 末端执行器长度（水平延伸）
+            const L5 = 0.065; // 抓手末端到抓手基座的距离（垂直延伸）
+            
+            // 方法1: 原始IK算法（保留用于对比）
+            const heightFromShoulder = targetHeight + L5 - L1;
+            const wristDist = targetDist - L4;
+            const d = Math.sqrt(wristDist * wristDist + heightFromShoulder * heightFromShoulder);
+            
+            console.log(`    IK计算: targetDist=${targetDist.toFixed(3)}, targetHeight=${targetHeight.toFixed(3)}, heightFromShoulder=${heightFromShoulder.toFixed(3)}, wristDist=${wristDist.toFixed(3)}, d=${d.toFixed(3)}`);
+            
+            // 检查是否可达
+            if (d > L2 + L3 || d < Math.abs(L2 - L3)) {
+                console.warn(`    ⚠️ 目标不可达! d=${d.toFixed(3)}, L2+L3=${(L2+L3).toFixed(3)}`);
+            }
+            
+            // 余弦定理计算肘关节角度
+            const cosElbow = (L2 * L2 + L3 * L3 - d * d) / (2 * L2 * L3);
+            const elbowTheory = -Math.acos(Math.max(-1, Math.min(1, cosElbow)));
+            
+            // 计算肩关节角度
+            const alpha = Math.atan2(heightFromShoulder, wristDist);
+            const cosBeta = (L2 * L2 + d * d - L3 * L3) / (2 * L2 * d);
+            const beta = Math.acos(Math.max(-1, Math.min(1, cosBeta)));
+            const shoulderTheory = alpha + beta;
+            
+            // 腕关节角度（理论值）
+            const wristTheory = -(shoulderTheory + elbowTheory);
+            
+            console.log(`    理论IK: shoulder=${(shoulderTheory*180/Math.PI).toFixed(1)}°, elbow=${(elbowTheory*180/Math.PI).toFixed(1)}°, wrist=${(wristTheory*180/Math.PI).toFixed(1)}°`);
+            
+            // 方法2: 基于实测数据的校正（如果目标是草高度0.01m）
+            if (Math.abs(targetHeight - CALIBRATION_DATA.referenceHeight) < 0.005) {
+                // 使用实测数据作为基准
+                console.log(`    ✨ 使用实测校准数据: shoulder=15°, elbow=-60°, wrist=-29°`);
+                return {
+                    shoulder: CALIBRATION_DATA.shoulder,
+                    elbow: CALIBRATION_DATA.elbow,
+                    wrist: CALIBRATION_DATA.wrist
+                };
+            }
+            
+            // 其他高度仍使用理论IK
+            console.log(`    使用理论IK (目标高度${targetHeight.toFixed(3)}m不是标准草高度)`);
+            return { shoulder: shoulderTheory, elbow: elbowTheory, wrist: wristTheory };
+        }
+        
+        // ========================================================================
+        // 拔草动作
+        // ========================================================================
+        
+        async function pullGrassAction(row, col) {
+            console.log(`🌱 开始拔草: [${row},${col}]`);
+            
+            const grass = grassArray[row][col];
+            if (!grass || grass.userData.isPulled) return;
+            
+            // 保存草的原始状态
+            const originalPos = grass.position.clone();
+            const originalScale = grass.scale.clone();
+            
+            // 计算草在小车坐标系中的位置
+            const grassWorldPos = grass.position;
+            const cartWorldPos = cart.position;
+            const grassRelativeX = grassWorldPos.x - cartWorldPos.x;
+            const grassRelativeZ = grassWorldPos.z - cartWorldPos.z;
+            
+            // 草的高度（草的中心点在Y=grassHeight/2的位置）
+            const grassHeight = 0.01;
+            const grassTopY = grassHeight;  // 草顶部的Y坐标
+            
+            console.log(`  草的位置: 世界坐标(${grassWorldPos.x.toFixed(2)}, ${grassWorldPos.z.toFixed(2)}), 相对小车(${grassRelativeX.toFixed(2)}, ${grassRelativeZ.toFixed(2)})`);
+            console.log(`  草顶部高度=${grassTopY.toFixed(3)}m`);
+            
+            // 使用逆运动学计算精确角度
+            const targetDistance = Math.sqrt(grassRelativeX * grassRelativeX + grassRelativeZ * grassRelativeZ);
+            console.log(`  目标距离: ${targetDistance.toFixed(3)}m`);
+            
+            // 计算到达草上方的角度（悬停位置，高一点）
+            const hoverAngles = calculateArmAngles(targetDistance, grassTopY + 0.05);
+            console.log(`  悬停角度: shoulder=${(hoverAngles.shoulder * 180 / Math.PI).toFixed(1)}°, elbow=${(hoverAngles.elbow * 180 / Math.PI).toFixed(1)}°, wrist=${(hoverAngles.wrist * 180 / Math.PI).toFixed(1)}°`);
+            
+            // 计算到达草位置的角度（接触位置 - 抓手末端应该在草顶部）
+            const grassAngles = calculateArmAngles(targetDistance, grassTopY);
+            console.log(`  接触角度: shoulder=${(grassAngles.shoulder * 180 / Math.PI).toFixed(1)}°, elbow=${(grassAngles.elbow * 180 / Math.PI).toFixed(1)}°, wrist=${(grassAngles.wrist * 180 / Math.PI).toFixed(1)}°`);
+            
+            // 1. 打开抓手准备
+            console.log('  👐 打开抓手...');
+            await setGripperOpen(true, 0.3);
+            await sleep(200);
+            
+            // 2. 机械臂下降到草上方（悬停）- 使用逆运动学计算的角度
+            console.log('  ⬇️ 下降到草上方...');
+            await setArmJoints(hoverAngles.shoulder, hoverAngles.elbow, hoverAngles.wrist, 0.6);
+            await sleep(300);
+            
+            // 3. 继续下降，接触草 - 使用逆运动学计算的精确角度
+            console.log('  📍 对准草（精确接触）...');
+            await setArmJoints(grassAngles.shoulder, grassAngles.elbow, grassAngles.wrist, 0.5);
+            await sleep(200);
+            
+            // 验证：打印抓手末端的实际位置
+            const tipPos = getGripperTipWorldPosition();
+            console.log(`  🔴 抓手末端实际位置: (${tipPos.x.toFixed(3)}, ${tipPos.y.toFixed(3)}, ${tipPos.z.toFixed(3)})`);
+            console.log(`  🌿 草的实际位置: (${grassWorldPos.x.toFixed(3)}, ${grassWorldPos.y.toFixed(3)}, ${grassWorldPos.z.toFixed(3)})`);
+            console.log(`  📏 距离差: X=${(tipPos.x - grassWorldPos.x).toFixed(3)}, Y=${(tipPos.y - grassWorldPos.y).toFixed(3)}, Z=${(tipPos.z - grassWorldPos.z).toFixed(3)}`);
+            
+            // 4. 闭合抓手（夹住草）
+            console.log('  🤏 夹住草...');
+            await setGripperOpen(false, 0.4);
+            
+            // 草被夹住后变窄
+            grass.scale.x *= 0.7;
+            grass.scale.z *= 0.7;
+            await sleep(300);
+            
+            // 5. 缓慢向上拔起（草跟随机械臂上升）
+            console.log('  ⬆️ 拔起草（用力拉）...');
+            
+            // 将草附加到抓手上（这样草会跟随抓手移动）
+            // 获取抓手末端（tipMarker）的世界位置作为参考点
+            const gripperTipPos = getGripperTipWorldPosition();
+            
+            // 保存草相对于抓手末端的初始偏移
+            const grassOffset = new THREE.Vector3(
+                grass.position.x - gripperTipPos.x,
+                grass.position.y - gripperTipPos.y,
+                grass.position.z - gripperTipPos.z
+            );
+            
+            console.log(`  草偏移量: (${grassOffset.x.toFixed(3)}, ${grassOffset.y.toFixed(3)}, ${grassOffset.z.toFixed(3)})`);
+            
+            const pullSteps = 20;
+            const arm = cart.robotArm;
+            const pullStartShoulder = arm.shoulderJoint.rotation.z;
+            const pullStartElbow = arm.elbowJoint.rotation.z;
+            const pullStartWrist = arm.wristJoint.rotation.z;
+            
+            for (let i = 0; i < pullSteps; i++) {
+                const progress = i / pullSteps;
+                const smooth = easeInOutCubic(progress);
+                
+                // 机械臂逐渐上升（只抬高肩关节，其他关节保持不变，确保只向上）
+                arm.shoulderJoint.rotation.z = pullStartShoulder + smooth * Math.PI / 4;  // 增加45度，向上抬起
+                // 肘关节和腕关节保持不变，避免任何向下的可能
+                // arm.elbowJoint.rotation.z 保持 pullStartElbow
+                // arm.wristJoint.rotation.z 保持 pullStartWrist
+                
+                // 草跟随抓手末端移动（获取抓手末端的世界坐标）
+                const currentTipPos = getGripperTipWorldPosition();
+                grass.position.x = currentTipPos.x + grassOffset.x;
+                grass.position.y = currentTipPos.y + grassOffset.y;
+                grass.position.z = currentTipPos.z + grassOffset.z;
+                
+                // 草在拔起时轻微摇晃
+                grass.rotation.z = Math.sin(progress * Math.PI * 6) * 0.15;
+                grass.rotation.x = Math.sin(progress * Math.PI * 4) * 0.1;
+                
+                await sleep(30);
+            }
+            
+            await sleep(300);
+            
+            // 6. 打开抓手（草掉落）
+            console.log('  🗑️ 扔掉草...');
+            await setGripperOpen(true, 0.3);
+            
+            // 草掉落动画（旋转+下落）
+            const fallSteps = 15;
+            const dropStartY = grass.position.y;
+            for (let i = 0; i < fallSteps; i++) {
+                const progress = i / fallSteps;
+                grass.position.y = dropStartY - progress * progress * 0.3; // 加速下落
+                grass.rotation.x += 0.2; // 旋转
+                grass.rotation.z += 0.15;
+                grass.scale.multiplyScalar(0.96); // 逐渐变小
+                await sleep(30);
+            }
+            
+            // 完全消失
+            grass.visible = false;
+            grass.userData.isPulled = true;
+            
+            await sleep(200);
+            
+            // 7. 机械臂返回初始姿态（准备播种）
+            console.log('  ↩️ 机械臂返回初始姿态...');
+            const returnSteps = 20;
+            const returnStartShoulder = arm.shoulderJoint.rotation.z;
+            const returnStartElbow = arm.elbowJoint.rotation.z;
+            const returnStartWrist = arm.wristJoint.rotation.z;
+            
+            // 返回到初始姿态（垂直向上）
+            const returnTargetShoulder = 0;
+            const returnTargetElbow = 0;
+            const returnTargetWrist = 0;
+            
+            for (let i = 0; i < returnSteps; i++) {
+                const progress = i / returnSteps;
+                const smooth = easeInOutCubic(progress);
+                
+                arm.shoulderJoint.rotation.z = returnStartShoulder + smooth * (returnTargetShoulder - returnStartShoulder);
+                arm.elbowJoint.rotation.z = returnStartElbow + smooth * (returnTargetElbow - returnStartElbow);
+                arm.wristJoint.rotation.z = returnStartWrist + smooth * (returnTargetWrist - returnStartWrist);
+                
+                await sleep(25);
+            }
+            
+            await sleep(200);
+            
+            console.log(`   ✅ 拔草完成`);
+        }
+        
+        // ========================================================================
+        // 播种动作
+        // ========================================================================
+        
+        function createSeed() {
+            const seedGroup = new THREE.Group();
+            
+            // 种子主体（小球）
+            const seedGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+            const seedMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513,  // 棕色
+                roughness: 0.7
+            });
+            const seedMesh = new THREE.Mesh(seedGeometry, seedMaterial);
+            seedMesh.castShadow = true;
+            seedGroup.add(seedMesh);
+            
+            return seedGroup;
+        }
+        
+        async function plantSeedAction(row, col) {
+            console.log(`🌾 开始播种: [${row},${col}]`);
+            
+            const cellSize = 0.5;
+            const offsetX = -0.75;
+            const offsetZ = -0.75;
+            const targetX = offsetX + col * cellSize + cellSize / 2;
+            const targetZ = offsetZ + row * cellSize + cellSize / 2;
+            
+            // 1. 创建种子
+            const seed = createSeed();
+            seed.visible = false; // 先隐藏
+            farm.add(seed);
+            
+            // 2. 闭合抓手（装作拿着种子）
+            console.log('  🤏 拿好种子...');
+            await setGripperOpen(false, 0.3);
+            await sleep(200);
+            
+            // 3. 移动到播种姿态（使用实测最佳姿态）
+            console.log('  📍 移动到播种位置（实测最佳姿态: 75°, -111°, 22°）...');
+            await setArmJoints(PLANTING_POSE.shoulder, PLANTING_POSE.elbow, PLANTING_POSE.wrist, 0.8);
+            await sleep(400);
+            
+            // 4. 打开抓手（释放种子）
+            console.log('  🌱 释放种子...');
+            await setGripperOpen(true, 0.4);
+            
+            // 种子出现并下落
+            seed.visible = true;
+            seed.position.set(targetX, 0.15, targetZ); // 从适当高度开始
+            seed.scale.set(1, 1, 1);
+            
+            // 种子下落动画
+            const dropSteps = 15;
+            for (let i = 0; i < dropSteps; i++) {
+                const progress = i / dropSteps;
+                seed.position.y = 0.15 - progress * progress * 0.13; // 加速下落到0.02
+                seed.rotation.x += 0.1;
+                seed.rotation.z += 0.08;
+                await sleep(30);
+            }
+            
+            await sleep(200);
+            
+            // 5. 种子插入土壤动画
+            console.log('  🌍 种子插入土壤...');
+            for (let i = 0; i < 10; i++) {
+                seed.position.y -= 0.002; // 逐渐插入
+                seed.scale.y *= 0.95; // Y轴压扁
+                await sleep(40);
+            }
+            
+            await sleep(200);
+            
+            // 6. 机械臂返回初始姿态
+            console.log('  ↩️ 机械臂返回初始姿态...');
+            await setArmJoints(0, 0, 0, 0.6);
+            await sleep(300);
+            
+            // 8. 种子发芽生长动画
+            console.log('  🌱 种子发芽...');
+            
+            // 创建幼苗
+            const sprout = new THREE.Group();
+            
+            // 嫩芽茎
+            const stemGeometry = new THREE.CylinderGeometry(0.002, 0.003, 0.03, 8);
+            const stemMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x90EE90,  // 浅绿色
+                roughness: 0.6
+            });
+            const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+            stem.position.y = 0.015;
+            stem.castShadow = true;
+            sprout.add(stem);
+            
+            // 两片嫩叶
+            const leafGeometry = new THREE.CircleGeometry(0.008, 8);
+            const leafMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x7CFC00,  // 鲜绿色
+                roughness: 0.5,
+                side: THREE.DoubleSide
+            });
+            
+            const leftLeaf = new THREE.Mesh(leafGeometry, leafMaterial);
+            leftLeaf.position.set(-0.006, 0.025, 0);
+            leftLeaf.rotation.y = Math.PI / 6;
+            leftLeaf.rotation.z = Math.PI / 4;
+            leftLeaf.castShadow = true;
+            sprout.add(leftLeaf);
+            
+            const rightLeaf = new THREE.Mesh(leafGeometry, leafMaterial);
+            rightLeaf.position.set(0.006, 0.025, 0);
+            rightLeaf.rotation.y = -Math.PI / 6;
+            rightLeaf.rotation.z = -Math.PI / 4;
+            rightLeaf.castShadow = true;
+            sprout.add(rightLeaf);
+            
+            sprout.position.set(targetX, 0, targetZ);
+            sprout.scale.set(0.1, 0.1, 0.1); // 从很小开始
+            sprout.visible = false;
+            farm.add(sprout);
+            seeds.push(sprout);
+            
+            // 种子变小消失，幼苗长出
+            await sleep(200);
+            
+            const growSteps = 30;
+            for (let i = 0; i < growSteps; i++) {
+                const progress = i / growSteps;
+                const smooth = easeInOutCubic(progress);
+                
+                // 种子逐渐缩小
+                seed.scale.multiplyScalar(0.95);
+                
+                // 幼苗逐渐长出
+                if (i === 10) {
+                    seed.visible = false; // 种子消失
+                    sprout.visible = true; // 幼苗出现
+                }
+                
+                if (sprout.visible) {
+                    sprout.scale.set(
+                        0.1 + smooth * 0.9,
+                        0.1 + smooth * 0.9,
+                        0.1 + smooth * 0.9
+                    );
+                    
+                    // 叶子微微摆动
+                    leftLeaf.rotation.z = Math.PI / 4 + Math.sin(progress * Math.PI * 2) * 0.1;
+                    rightLeaf.rotation.z = -Math.PI / 4 - Math.sin(progress * Math.PI * 2) * 0.1;
+                }
+                
+                await sleep(40);
+            }
+            
+            await sleep(300);
+            
+            console.log(`   ✅ 播种完成，幼苗已长出`);
+        }
+        
+        // ========================================================================
+        // 手动控制功能
+        // ========================================================================
+        
+        // 切换手动控制面板
+        function toggleManualControl() {
+            const panel = document.getElementById('manualControl');
+            manualMode = !manualMode;
+            panel.style.display = manualMode ? 'block' : 'none';
+            
+            if (manualMode) {
+                // 停止自动测试
+                stopTest();
+                // 同步当前状态到滑块
+                syncSlidersToCurrentState();
+                // 更新位置信息
+                updatePositionInfo();
+                console.log('🎮 进入手动控制模式');
+            } else {
+                console.log('🎮 退出手动控制模式');
+            }
+        }
+        
+        // 同步滑块到当前状态
+        function syncSlidersToCurrentState() {
+            if (!cart || !cart.robotArm) return;
+            
+            // 小车位置
+            document.getElementById('cartX').value = cart.position.x.toFixed(2);
+            document.getElementById('cartZ').value = cart.position.z.toFixed(2);
+            document.getElementById('cartXValue').textContent = cart.position.x.toFixed(2);
+            document.getElementById('cartZValue').textContent = cart.position.z.toFixed(2);
+            
+            // 机械臂角度（转换为度数）
+            const arm = cart.robotArm;
+            const shoulderDeg = (arm.shoulderJoint.rotation.z * 180 / Math.PI).toFixed(0);
+            const elbowDeg = (arm.elbowJoint.rotation.z * 180 / Math.PI).toFixed(0);
+            const wristDeg = (arm.wristJoint.rotation.z * 180 / Math.PI).toFixed(0);
+            
+            document.getElementById('shoulder').value = shoulderDeg;
+            document.getElementById('elbow').value = elbowDeg;
+            document.getElementById('wrist').value = wristDeg;
+            document.getElementById('shoulderValue').textContent = shoulderDeg + '°';
+            document.getElementById('elbowValue').textContent = elbowDeg + '°';
+            document.getElementById('wristValue').textContent = wristDeg + '°';
+            
+            // 抓手状态
+            const gripperOpen = arm.gripperGroup.isOpen ? 1 : 0;
+            document.getElementById('gripper').value = gripperOpen;
+            document.getElementById('gripperValue').textContent = gripperOpen ? '打开' : '关闭';
+        }
+        
+        // 更新小车位置
+        function updateCartPosition() {
+            if (!cart) return;
+            
+            const x = parseFloat(document.getElementById('cartX').value);
+            const z = parseFloat(document.getElementById('cartZ').value);
+            
+            cart.position.x = x;
+            cart.position.z = z;
+            
+            document.getElementById('cartXValue').textContent = x.toFixed(2);
+            document.getElementById('cartZValue').textContent = z.toFixed(2);
+            document.getElementById('position').textContent = `(${x.toFixed(2)}, ${z.toFixed(2)})`;
+            
+            // 实时更新位置信息
+            updatePositionInfo();
+        }
+        
+        // 更新机械臂角度
+        function updateArmAngles() {
+            if (!cart || !cart.robotArm) return;
+            
+            const shoulderDeg = parseInt(document.getElementById('shoulder').value);
+            const elbowDeg = parseInt(document.getElementById('elbow').value);
+            const wristDeg = parseInt(document.getElementById('wrist').value);
+            
+            const arm = cart.robotArm;
+            arm.shoulderJoint.rotation.z = shoulderDeg * Math.PI / 180;
+            arm.elbowJoint.rotation.z = elbowDeg * Math.PI / 180;
+            arm.wristJoint.rotation.z = wristDeg * Math.PI / 180;
+            
+            document.getElementById('shoulderValue').textContent = shoulderDeg + '°';
+            document.getElementById('elbowValue').textContent = elbowDeg + '°';
+            document.getElementById('wristValue').textContent = wristDeg + '°';
+            
+            // 实时更新位置信息
+            updatePositionInfo();
+        }
+        
+        // 更新抓手状态
+        function updateGripper() {
+            if (!cart || !cart.robotArm) return;
+            
+            const gripperOpen = parseInt(document.getElementById('gripper').value) === 1;
+            const arm = cart.robotArm;
+            
+            if (gripperOpen) {
+                arm.gripperGroup.leftFinger.position.z = 0.015;
+                arm.gripperGroup.rightFinger.position.z = -0.015;
+                arm.gripperGroup.isOpen = true;
+                arm.gripperGroup.led.material.color.setHex(0x00FF00);
+                arm.gripperGroup.led.material.emissive.setHex(0x00FF00);
+            } else {
+                arm.gripperGroup.leftFinger.position.z = 0.01;
+                arm.gripperGroup.rightFinger.position.z = -0.01;
+                arm.gripperGroup.isOpen = false;
+                arm.gripperGroup.led.material.color.setHex(0xFF0000);
+                arm.gripperGroup.led.material.emissive.setHex(0xFF0000);
+            }
+            
+            document.getElementById('gripperValue').textContent = gripperOpen ? '打开' : '关闭';
+        }
+        
+        // 移到草的位置
+        function moveToGrass() {
+            if (!targetGrass) {
+                alert('请先选择目标草！');
+                return;
+            }
+            
+            const grassPos = targetGrass.position;
+            const row = Math.floor(targetGrassIndex / 4);
+            const col = targetGrassIndex % 4;
+            
+            // 计算小车应该停靠的位置（小车在草的左侧）
+            const cartTargetX = grassPos.x - 0.45;
+            const cartTargetZ = grassPos.z;
+            
+            document.getElementById('cartX').value = cartTargetX.toFixed(2);
+            document.getElementById('cartZ').value = cartTargetZ.toFixed(2);
+            updateCartPosition();
+            
+            console.log(`📍 小车移动到草 [${row},${col}] 位置: (${cartTargetX.toFixed(2)}, ${cartTargetZ.toFixed(2)})`);
+        }
+        
+        // 回到原点
+        function moveToOrigin() {
+            document.getElementById('cartX').value = '-1.50';
+            document.getElementById('cartZ').value = '-1.50';
+            updateCartPosition();
+            console.log('🏠 小车返回原点');
+        }
+        
+        // 重置机械臂姿态
+        function resetArm() {
+            document.getElementById('shoulder').value = '0';
+            document.getElementById('elbow').value = '0';
+            document.getElementById('wrist').value = '0';
+            document.getElementById('gripper').value = '0';
+            updateArmAngles();
+            updateGripper();
+            console.log('↩️ 机械臂重置为初始姿态');
+        }
+        
+        // 自动对齐草（使用IK）
+        function autoAlignGrass() {
+            if (!targetGrass) {
+                alert('请先选择目标草！');
+                return;
+            }
+            
+            const grassPos = targetGrass.position;
+            const cartPos = cart.position;
+            
+            // 计算草相对于小车的位置
+            const relativeX = grassPos.x - cartPos.x;
+            const relativeZ = grassPos.z - cartPos.z;
+            const targetDistance = Math.sqrt(relativeX * relativeX + relativeZ * relativeZ);
+            const grassTopY = 0.01;
+            
+            // 使用IK计算角度
+            const angles = calculateArmAngles(targetDistance, grassTopY);
+            
+            // 设置滑块值（转换为度数）
+            document.getElementById('shoulder').value = (angles.shoulder * 180 / Math.PI).toFixed(0);
+            document.getElementById('elbow').value = (angles.elbow * 180 / Math.PI).toFixed(0);
+            document.getElementById('wrist').value = (angles.wrist * 180 / Math.PI).toFixed(0);
+            updateArmAngles();
+            
+            console.log('🎯 自动对齐草位置完成');
+            updatePositionInfo();
+        }
+        
+        // 选择目标草
+        function selectTargetGrass() {
+            targetGrassIndex = (targetGrassIndex + 1) % 16;
+            const row = Math.floor(targetGrassIndex / 4);
+            const col = targetGrassIndex % 4;
+            targetGrass = grassArray[row][col];
+            
+            console.log(`🌱 选择目标草: [${row},${col}] 位置(${targetGrass.position.x.toFixed(2)}, ${targetGrass.position.z.toFixed(2)})`);
+            updatePositionInfo();
+        }
+        
+        // 更新位置信息显示
+        function updatePositionInfo() {
+            if (!cart || !cart.robotArm) return;
+            
+            const tipPos = getGripperTipWorldPosition();
+            let infoHTML = `<strong>抓手末端:</strong> (${tipPos.x.toFixed(3)}, ${tipPos.y.toFixed(3)}, ${tipPos.z.toFixed(3)})<br>`;
+            
+            if (targetGrass) {
+                const row = Math.floor(targetGrassIndex / 4);
+                const col = targetGrassIndex % 4;
+                const grassPos = targetGrass.position;
+                
+                const dx = tipPos.x - grassPos.x;
+                const dy = tipPos.y - grassPos.y;
+                const dz = tipPos.z - grassPos.z;
+                const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                infoHTML += `<strong>目标草 [${row},${col}]:</strong> (${grassPos.x.toFixed(3)}, ${grassPos.y.toFixed(3)}, ${grassPos.z.toFixed(3)})<br>`;
+                infoHTML += `<strong>距离差:</strong> X=${dx.toFixed(3)}, Y=${dy.toFixed(3)}, Z=${dz.toFixed(3)}<br>`;
+                infoHTML += `<strong>总距离:</strong> ${distance.toFixed(3)}m`;
+                
+                // 如果距离很小，高亮显示
+                if (distance < 0.01) {
+                    infoHTML += ` <span style="color: #28a745; font-weight: bold;">✅ 精确对齐!</span>`;
+                } else if (distance < 0.05) {
+                    infoHTML += ` <span style="color: #ffc107; font-weight: bold;">⚠️ 接近</span>`;
+                }
+            } else {
+                infoHTML += `<strong>目标草:</strong> 未选择（点击"选择目标草"按钮）<br>`;
+                infoHTML += `<strong>距离差:</strong> -`;
+            }
+            
+            document.getElementById('positionInfo').innerHTML = infoHTML;
+        }
+        
+        // 记录当前状态
+        function recordCurrentState() {
+            if (!cart || !cart.robotArm) return;
+            
+            const arm = cart.robotArm;
+            const tipPos = getGripperTipWorldPosition();
+            
+            const state = {
+                timestamp: new Date().toLocaleTimeString(),
+                cart: {
+                    x: cart.position.x,
+                    z: cart.position.z
+                },
+                arm: {
+                    shoulder: arm.shoulderJoint.rotation.z,
+                    elbow: arm.elbowJoint.rotation.z,
+                    wrist: arm.wristJoint.rotation.z
+                },
+                armDegrees: {
+                    shoulder: (arm.shoulderJoint.rotation.z * 180 / Math.PI).toFixed(1),
+                    elbow: (arm.elbowJoint.rotation.z * 180 / Math.PI).toFixed(1),
+                    wrist: (arm.wristJoint.rotation.z * 180 / Math.PI).toFixed(1)
+                },
+                gripperTip: {
+                    x: tipPos.x,
+                    y: tipPos.y,
+                    z: tipPos.z
+                },
+                gripperOpen: arm.gripperGroup.isOpen,
+                targetGrass: targetGrass ? {
+                    index: targetGrassIndex,
+                    row: Math.floor(targetGrassIndex / 4),
+                    col: targetGrassIndex % 4,
+                    position: {
+                        x: targetGrass.position.x,
+                        y: targetGrass.position.y,
+                        z: targetGrass.position.z
+                    }
+                } : null
+            };
+            
+            stateRecords.push(state);
+            console.log('📸 状态已记录:', state);
+            
+            // 更新记录列表显示
+            updateRecordsList();
+            
+            alert(`✅ 状态已记录！共${stateRecords.length}条记录`);
+        }
+        
+        // 更新记录列表显示
+        function updateRecordsList() {
+            const listDiv = document.getElementById('recordsList');
+            if (stateRecords.length === 0) {
+                listDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 10px;">暂无记录</div>';
+                return;
+            }
+            
+            let html = '';
+            stateRecords.forEach((record, index) => {
+                const targetInfo = record.targetGrass ? 
+                    `草[${record.targetGrass.row},${record.targetGrass.col}]` : '无目标';
+                html += `
+                    <div class="record-item" onclick="loadRecord(${index})" title="点击加载此状态">
+                        <strong>#${index + 1}</strong> ${record.timestamp}<br>
+                        <small>小车: (${record.cart.x.toFixed(2)}, ${record.cart.z.toFixed(2)})</small><br>
+                        <small>肩:${record.armDegrees.shoulder}° 肘:${record.armDegrees.elbow}° 腕:${record.armDegrees.wrist}°</small><br>
+                        <small>目标: ${targetInfo}</small>
+                    </div>
+                `;
+            });
+            
+            listDiv.innerHTML = html;
+        }
+        
+        // 加载记录的状态
+        function loadRecord(index) {
+            const record = stateRecords[index];
+            if (!record) return;
+            
+            // 加载小车位置
+            document.getElementById('cartX').value = record.cart.x.toFixed(2);
+            document.getElementById('cartZ').value = record.cart.z.toFixed(2);
+            updateCartPosition();
+            
+            // 加载机械臂角度
+            document.getElementById('shoulder').value = record.armDegrees.shoulder;
+            document.getElementById('elbow').value = record.armDegrees.elbow;
+            document.getElementById('wrist').value = record.armDegrees.wrist;
+            updateArmAngles();
+            
+            // 加载抓手状态
+            document.getElementById('gripper').value = record.gripperOpen ? 1 : 0;
+            updateGripper();
+            
+            // 加载目标草
+            if (record.targetGrass) {
+                targetGrassIndex = record.targetGrass.index;
+                const row = record.targetGrass.row;
+                const col = record.targetGrass.col;
+                targetGrass = grassArray[row][col];
+            }
+            
+            updatePositionInfo();
+            
+            console.log(`✅ 已加载记录 #${index + 1}`);
+        }
+        
+        // 导出所有记录
+        function exportRecords() {
+            if (stateRecords.length === 0) {
+                alert('暂无记录可导出！');
+                return;
+            }
+            
+            // 创建格式化的文本
+            let exportText = '========================================\n';
+            exportText += '机械臂状态记录导出\n';
+            exportText += `导出时间: ${new Date().toLocaleString()}\n`;
+            exportText += `记录数量: ${stateRecords.length}\n`;
+            exportText += '========================================\n\n';
+            
+            stateRecords.forEach((record, index) => {
+                exportText += `记录 #${index + 1} - ${record.timestamp}\n`;
+                exportText += `----------------------------------------\n`;
+                exportText += `小车位置:\n`;
+                exportText += `  X = ${record.cart.x.toFixed(3)}\n`;
+                exportText += `  Z = ${record.cart.z.toFixed(3)}\n\n`;
+                
+                exportText += `机械臂角度 (弧度):\n`;
+                exportText += `  shoulder = ${record.arm.shoulder.toFixed(6)}\n`;
+                exportText += `  elbow = ${record.arm.elbow.toFixed(6)}\n`;
+                exportText += `  wrist = ${record.arm.wrist.toFixed(6)}\n\n`;
+                
+                exportText += `机械臂角度 (度数):\n`;
+                exportText += `  shoulder = ${record.armDegrees.shoulder}°\n`;
+                exportText += `  elbow = ${record.armDegrees.elbow}°\n`;
+                exportText += `  wrist = ${record.armDegrees.wrist}°\n\n`;
+                
+                exportText += `抓手末端位置:\n`;
+                exportText += `  X = ${record.gripperTip.x.toFixed(6)}\n`;
+                exportText += `  Y = ${record.gripperTip.y.toFixed(6)}\n`;
+                exportText += `  Z = ${record.gripperTip.z.toFixed(6)}\n\n`;
+                
+                exportText += `抓手状态: ${record.gripperOpen ? '打开' : '关闭'}\n\n`;
+                
+                if (record.targetGrass) {
+                    exportText += `目标草:\n`;
+                    exportText += `  位置: [${record.targetGrass.row}, ${record.targetGrass.col}]\n`;
+                    exportText += `  坐标: (${record.targetGrass.position.x.toFixed(3)}, ${record.targetGrass.position.y.toFixed(3)}, ${record.targetGrass.position.z.toFixed(3)})\n\n`;
+                    
+                    const dx = record.gripperTip.x - record.targetGrass.position.x;
+                    const dy = record.gripperTip.y - record.targetGrass.position.y;
+                    const dz = record.gripperTip.z - record.targetGrass.position.z;
+                    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    
+                    exportText += `距离差:\n`;
+                    exportText += `  ΔX = ${dx.toFixed(6)}\n`;
+                    exportText += `  ΔY = ${dy.toFixed(6)}\n`;
+                    exportText += `  ΔZ = ${dz.toFixed(6)}\n`;
+                    exportText += `  总距离 = ${distance.toFixed(6)}\n`;
+                }
+                
+                exportText += '\n========================================\n\n';
+            });
+            
+            // 下载为文本文件
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `robot_states_${new Date().getTime()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('📤 记录已导出');
+            alert(`✅ 已导出 ${stateRecords.length} 条记录！`);
+        }
+        
+        // 清空记录
+        function clearRecords() {
+            if (stateRecords.length === 0) return;
+            
+            if (confirm(`确定要清空所有 ${stateRecords.length} 条记录吗？`)) {
+                stateRecords = [];
+                updateRecordsList();
+                console.log('🗑️ 所有记录已清空');
+            }
+        }
+        
+        // 窗口调整
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // ========================================================================
+        // 单步控制功能
+        // ========================================================================
+        
+        function stepCartX(delta) {
+            const slider = document.getElementById('cartX');
+            let newValue = parseFloat(slider.value) + delta;
+            newValue = Math.max(-1.5, Math.min(1.5, newValue)); // 限制范围
+            slider.value = newValue.toFixed(2);
+            updateCartPosition();
+        }
+        
+        function stepCartZ(delta) {
+            const slider = document.getElementById('cartZ');
+            let newValue = parseFloat(slider.value) + delta;
+            newValue = Math.max(-1.5, Math.min(1.5, newValue)); // 限制范围
+            slider.value = newValue.toFixed(2);
+            updateCartPosition();
+        }
+        
+        function stepShoulder(delta) {
+            const slider = document.getElementById('shoulder');
+            let newValue = parseInt(slider.value) + delta;
+            newValue = Math.max(-180, Math.min(180, newValue)); // 限制范围
+            slider.value = newValue;
+            updateArmAngles();
+        }
+        
+        function stepElbow(delta) {
+            const slider = document.getElementById('elbow');
+            let newValue = parseInt(slider.value) + delta;
+            newValue = Math.max(-180, Math.min(180, newValue)); // 限制范围
+            slider.value = newValue;
+            updateArmAngles();
+        }
+        
+        function stepWrist(delta) {
+            const slider = document.getElementById('wrist');
+            let newValue = parseInt(slider.value) + delta;
+            newValue = Math.max(-180, Math.min(180, newValue)); // 限制范围
+            slider.value = newValue;
+            updateArmAngles();
+        }
+        
+        function toggleGripper() {
+            const slider = document.getElementById('gripper');
+            slider.value = slider.value === '0' ? '1' : '0';
+            updateGripper();
+        }
+        
+        // ========================================================================
+        // 面板收纳功能
+        // ========================================================================
+        
+        function toggleLeftPanel() {
+            const panel = document.getElementById('controls');
+            const btn = document.getElementById('toggleLeft');
+            
+            if (panel.classList.contains('collapsed')) {
+                // 展开
+                panel.classList.remove('collapsed');
+                btn.textContent = '◀';
+                btn.title = '收纳左侧面板';
+            } else {
+                // 收纳
+                panel.classList.add('collapsed');
+                btn.textContent = '▶';
+                btn.title = '展开左侧面板';
+            }
+        }
+        
+        function toggleRightPanel() {
+            const panel = document.getElementById('manualControl');
+            const btn = document.getElementById('toggleRight');
+            
+            // 检查面板是否显示
+            const isHidden = panel.style.display === 'none' || !panel.style.display;
+            
+            if (isHidden) {
+                // 如果手动控制面板本身是隐藏的，先显示它
+                panel.style.display = 'block';
+                manualMode = true;
+                syncSlidersToCurrentState();
+                updatePositionInfo();
+                btn.textContent = '▶';
+                btn.title = '收纳右侧面板';
+            } else if (panel.classList.contains('collapsed')) {
+                // 展开
+                panel.classList.remove('collapsed');
+                btn.textContent = '▶';
+                btn.title = '收纳右侧面板';
+            } else {
+                // 收纳
+                panel.classList.add('collapsed');
+                btn.textContent = '◀';
+                btn.title = '展开右侧面板';
+            }
+        }
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html>
+

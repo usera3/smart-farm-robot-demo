@@ -1,0 +1,24 @@
+{
+  "server": {
+    "port": 8888,
+    "max_clients": 10,
+    "heartbeat_interval": 5,
+    "client_timeout": 30
+  },
+  "logging": {
+    "enable_logging": true,
+    "log_file_path": "server.log",
+    "log_level": "INFO"
+  },
+  "python": {
+    "python_home": "C:/Python38",
+    "modules_path": "../",
+    "auto_initialize": true
+  },
+  "farm": {
+    "grid_size": 8,
+    "cell_size": 0.5,
+    "initial_energy": 100,
+    "initial_coins": 100
+  }
+}

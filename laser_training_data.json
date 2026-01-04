@@ -1,0 +1,28 @@
+{
+  "shots": [
+    {
+      "timestamp": "2025-11-06T22:56:28.385809",
+      "emitter_pos": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0
+      },
+      "target_pos": {
+        "x": 1.0,
+        "y": 0.1,
+        "z": 1.0
+      },
+      "horizontal_dist": 1.414,
+      "vertical_diff": -0.4,
+      "pitch_angle": -15.5,
+      "shoulder_offset": 0.2,
+      "elbow_angle": 45.0,
+      "wrist_factor": 0.8,
+      "success": true,
+      "plant_id": "plant_0_0"
+    }
+  ],
+  "best_params": null,
+  "success_count": 1,
+  "total_count": 1
+}

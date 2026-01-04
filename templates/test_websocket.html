@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket 测试</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+        }
+        .log {
+            background: #000;
+            border: 2px solid #0f0;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            overflow-y: scroll;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+            padding-left: 10px;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0ff;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #0f0;
+        }
+        .connected { border-color: #0f0; background: #002200; }
+        .disconnected { border-color: #f00; background: #220000; color: #f00; }
+    </style>
+</head>
+<body>
+    <h1>🔍 WebSocket 连接测试</h1>
+    
+    <div id="status" class="status disconnected">
+        ❌ WebSocket: 未连接
+    </div>
+    
+    <div>
+        <button onclick="testCartUpdate()">测试 cart_update</button>
+        <button onclick="clearLog()">清空日志</button>
+        <button onclick="location.href='/'">返回游戏</button>
+    </div>
+    
+    <h2>事件日志:</h2>
+    <div id="log" class="log"></div>
+    
+    <script>
+        const socket = io();
+        let logCount = 0;
+        
+        function addLog(message, color = '#0f0') {
+            logCount++;
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.color = color;
+            entry.innerHTML = `[${logCount}] ${new Date().toLocaleTimeString()} - ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            logCount = 0;
+        }
+        
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.innerHTML = '✅ WebSocket: 已连接';
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.innerHTML = '❌ WebSocket: 未连接';
+            }
+        }
+        
+        // 连接事件
+        socket.on('connect', () => {
+            addLog('🟢 Socket.IO 连接成功!', '#0f0');
+            updateStatus(true);
+        });
+        
+        socket.on('disconnect', () => {
+            addLog('🔴 Socket.IO 断开连接!', '#f00');
+            updateStatus(false);
+        });
+        
+        socket.on('connected', (data) => {
+            addLog('🟢 收到 connected 事件', '#0ff');
+            addLog('   数据: ' + JSON.stringify(data).substring(0, 100), '#888');
+        });
+        
+        // 监听 cart_update
+        socket.on('cart_update', (data) => {
+            addLog('🚗 收到 cart_update 事件!', '#ff0');
+            addLog('   位置: (' + data.x + ', ' + data.z + ')', '#ff0');
+            addLog('   角度: ' + data.rotation + '°', '#ff0');
+            addLog('   速度: ' + data.speed, '#ff0');
+        });
+        
+        // 监听其他事件
+        socket.on('laser_fired', (data) => {
+            addLog('🔥 laser_fired: ' + JSON.stringify(data), '#f0f');
+        });
+        
+        socket.on('auto_farm_task_started', (data) => {
+            addLog('🤖 auto_farm_task_started: ' + JSON.stringify(data), '#0ff');
+        });
+        
+        socket.on('auto_farm_action', (data) => {
+            addLog('⚡ auto_farm_action: ' + JSON.stringify(data), '#0ff');
+        });
+        
+        // 测试函数
+        function testCartUpdate() {
+            addLog('📤 发送测试请求到 /api/cart/update...', '#fff');
+            
+            fetch('/api/cart/update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    x: Math.random() * 2 - 1,
+                    z: Math.random() * 2 - 1,
+                    rotation: Math.random() * 360,
+                    speed: 2.0
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                addLog('📥 API 响应: ' + JSON.stringify(data), '#0f0');
+            })
+            .catch(error => {
+                addLog('❌ API 错误: ' + error, '#f00');
+            });
+        }
+        
+        // 初始日志
+        addLog('🚀 WebSocket 测试页面已加载', '#fff');
+        addLog('📡 正在连接到服务器...', '#fff');
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
