@@ -42,3 +42,27 @@ dist/
 # Test coverage
 .coverage
 htmlcov/
+
+# Test and Demo Files (不上传)
+test_*.py
+demo_*.py
+example_*.py
+monitor_*.py
+
+# Detailed Documentation (不上传)
+API_VERIFICATION_SUMMARY.md
+AUTO_FARM_COMPLETE.md
+AUTO_FARM_DESIGN.md
+HARVEST_ANALYSIS.md
+INTEGRATION_COMPLETE.md
+MACOS_ADAPTATION_SUMMARY.md
+WINSOCK_PROJECT_SUMMARY.md
+SMART_FARM_PAPER_CN.md
+
+# Packaging Scripts (不上传)
+package.sh
+package_project.py
+quick_status.sh
+
+# Training Data (不上传)
+laser_training_data.json
